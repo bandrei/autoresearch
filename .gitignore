@@ -21,3 +21,7 @@ dev/
 
 # Results file
 results.tsv
+*.pt
+backtest_results.tsv
+arxiv_fetch.log
+results.tsv
