@@ -628,3 +628,13 @@ print(f"total_tokens_M:   {total_tokens / 1e6:.1f}")
 print(f"num_steps:        {step}")
 print(f"num_params_M:     {num_params / 1e6:.1f}")
 print(f"depth:            {DEPTH}")
+
+# Save model checkpoint
+checkpoint = {
+    'model': model.state_dict(),
+    'config': asdict(config),
+    'val_bpb': val_bpb,
+    'step': step,
+}
+torch.save(checkpoint, 'model_latest.pt')
+print("Model saved to model_latest.pt")
