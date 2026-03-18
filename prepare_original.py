@@ -36,27 +36,11 @@ EVAL_TOKENS = 40 * 524288  # number of tokens for val eval
 # ---------------------------------------------------------------------------
 
 CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "autoresearch")
-DATA_DIR = os.path.join(CACHE_DIR, "data_arxiv")
-if not os.path.exists(DATA_DIR) or not os.listdir(DATA_DIR):
-    DATA_DIR = os.path.join(CACHE_DIR, "data")
-
-TOKENIZER_DIR = os.path.join(CACHE_DIR, "tokenizer_arxiv" if "data_arxiv" in DATA_DIR else "tokenizer")
+DATA_DIR = os.path.join(CACHE_DIR, "data")
+TOKENIZER_DIR = os.path.join(CACHE_DIR, "tokenizer")
 BASE_URL = "https://huggingface.co/datasets/karpathy/climbmix-400b-shuffle/resolve/main"
-
-def get_shards():
-    if not os.path.exists(DATA_DIR):
-        return []
-    files = sorted(f for f in os.listdir(DATA_DIR) if f.endswith(".parquet") and not f.endswith(".tmp"))
-    return [int(f.split("_")[1].split(".")[0]) for f in files]
-
-shards = get_shards()
-if shards:
-    MAX_SHARD = max(shards)
-    VAL_SHARD = MAX_SHARD
-else:
-    MAX_SHARD = 6542 # the last datashard is shard_06542.parquet
-    VAL_SHARD = MAX_SHARD  # pinned validation shard (shard_06542)
-
+MAX_SHARD = 6542 # the last datashard is shard_06542.parquet
+VAL_SHARD = MAX_SHARD  # pinned validation shard (shard_06542)
 VAL_FILENAME = f"shard_{VAL_SHARD:05d}.parquet"
 VOCAB_SIZE = 8192
 
@@ -106,10 +90,6 @@ def download_single_shard(index):
 
 def download_data(num_shards, download_workers=8):
     """Download training shards + pinned validation shard."""
-    if "data_arxiv" in DATA_DIR:
-        print(f"Data: using local arxiv data at {DATA_DIR}")
-        return
-
     os.makedirs(DATA_DIR, exist_ok=True)
     num_train = min(num_shards, MAX_SHARD)
     ids = list(range(num_train))
