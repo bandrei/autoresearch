@@ -16,6 +16,8 @@ dependencies = [
     "rustbpe>=0.1.0",
     "tiktoken>=0.11.0",
     "torch==2.9.1",
+    "vectorbt>=0.28.2",
+    "yfinance>=1.2.0",
 ]
 
 [tool.uv.sources]

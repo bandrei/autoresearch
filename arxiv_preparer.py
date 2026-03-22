@@ -49,23 +49,42 @@ def prepare_arxiv_data(num_papers=50, papers_per_shard=10):
     temp_pdf_dir = os.path.join(CACHE_DIR, "temp_pdfs")
     os.makedirs(temp_pdf_dir, exist_ok=True)
     
-    for i, paper in enumerate(tqdm(papers, desc="Downloading and extracting")):
+    for i, paper in enumerate(papers):
+        print(f"[{i+1}/{len(papers)}] Processing: {paper.title}")
         pdf_filename = f"{paper.get_short_id()}.pdf"
         pdf_path = os.path.join(temp_pdf_dir, pdf_filename)
         
         try:
-            paper.download_pdf(dirpath=temp_pdf_dir, filename=pdf_filename)
+            # Check if PDF already exists locally
+            if os.path.exists(pdf_path):
+                print(f"  Found local PDF for {paper.get_short_id()}. Extracting...")
+            else:
+                # Exponential backoff for downloads
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        paper.download_pdf(dirpath=temp_pdf_dir, filename=pdf_filename)
+                        break 
+                    except Exception as e:
+                        if "429" in str(e) and attempt < max_retries - 1:
+                            wait_time = (attempt + 1) * 30 # Wait 30, 60 seconds
+                            print(f"\nRate limited (429). Waiting {wait_time}s...")
+                            time.sleep(wait_time)
+                        else:
+                            raise e
+
             text = extract_text_from_pdf(pdf_path)
             if text and len(text) > 500: # Basic filter for empty/short content
                 all_texts.append(text)
-            
-            # Remove PDF after extraction to save space
-            os.remove(pdf_path)
-        except Exception as e:
-            print(f"Failed to process {paper.title}: {e}")
+                # Keep PDFs for future use / re-processing
+                print(f"  Successfully extracted {paper.get_short_id()}. PDF preserved in cache.")
+            else:
+                print(f"  Extraction failed or text too short for {paper.get_short_id()}")
         
-        # Respect arXiv API rate limits
-        time.sleep(1)
+        # Respect arXiv API rate limits - increased to be safe for PDFs
+        # with random jitter to mimic human-like behavior
+        import random
+        time.sleep(10 + random.uniform(1, 5))
 
     # Save as parquet shards
     num_shards = (len(all_texts) + papers_per_shard - 1) // papers_per_shard
